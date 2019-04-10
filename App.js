@@ -1,7 +1,7 @@
 import React from 'react';
-import {StyleSheet, Text, View, PixelRatio, ScrollView, TouchableWithoutFeedback} from 'react-native';
-import Svg, {Rect, Mask, Circle, Defs, Path, G} from 'react-native-svg';
-import {animated, Controller} from 'react-spring/renderprops-native';
+import {StyleSheet, Text, View, PixelRatio, ScrollView, TouchableWithoutFeedback, Animated} from 'react-native';
+import Svg, {Rect, Mask, Circle, Defs, Path, G, Image} from 'react-native-svg';
+import SERVERS from './urls';
 
 const STATUS_BAR_PADDING = 60;
 const SIZE = 64;
@@ -12,9 +12,8 @@ const SQUIRCLE =
   'M0 89.088C0 57.9043 0 42.3124 6.06876 30.4018C11.407 19.9249 19.9249 11.407 30.4018 6.06876C42.3124 0 57.9043 0 89.088 0H102.912C134.096 0 149.688 0 161.598 6.06876C172.075 11.407 180.593 19.9249 185.931 30.4018C192 42.3124 192 57.9043 192 89.088V102.912C192 134.096 192 149.688 185.931 161.598C180.593 172.075 172.075 180.593 161.598 185.931C149.688 192 134.096 192 102.912 192H89.088C57.9043 192 42.3124 192 30.4018 185.931C19.9249 180.593 11.407 172.075 6.06876 161.598C0 149.688 0 134.096 0 102.912V89.088Z';
 
 const BADGE_IN_SETTINGS = {
-  friction: 30,
-  tension: 900,
-  mass: 1,
+  friction: 15,
+  tension: 200,
 };
 
 const styles = StyleSheet.create({
@@ -47,7 +46,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const AnimatedCircle = animated(Circle);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 class MaskedElement extends React.PureComponent {
   static defaultProps = {
@@ -55,34 +54,55 @@ class MaskedElement extends React.PureComponent {
   };
 
   state = {
-    controller: new Controller({spring: 1, config: BADGE_IN_SETTINGS}),
+    position: new Animated.Value(0),
     active: false,
   };
 
+  animate = (value, immediate = false) => {
+    const {position} = this.state;
+    if (immediate) {
+      Animated.timing(position, {
+        useNativeDriver: true,
+        duration: 0,
+        toValue: value,
+      }).start();
+    } else {
+      Animated.spring(position, {
+        useNativeDriver: true,
+        ...BADGE_IN_SETTINGS,
+        toValue: value,
+      }).start();
+    }
+  };
+
+  componentDidMount() {
+    this.animate(0, true);
+  }
+
+  componentDidUpdate(prevProps) {
+    const {selected} = this.props;
+    if (selected && !prevProps.selected) {
+      setTimeout(() => this.animate(1), 300);
+    } else if (!selected && prevProps.selected) {
+      setTimeout(() => this.animate(0), 2000);
+    }
+  }
+
   getBadgePosition() {
-    const {controller} = this.state;
-    return {
+    const {position} = this.state;
+    const ret = {
       transform: [
         {
-          translate: [
-            {
-              translateY: controller.getValues().spring.interpolate([0, 1], [20, 0]),
-            },
-            {
-              translateX: controller.getValues().spring.interpolate([0, 1], [20, 0]),
-            },
-          ],
-          // controller
-          //   .getValues()
-          //   .spring.interpolate([0, 1], [20, 0])
-          //   .interpolate(value => `translate(${value} ${value})`),
+          translateX: position.interpolate({inputRange: [0, 1], outputRange: [(SVG_SIZE / 4) * 2, 0]}),
+          translateY: position.interpolate({inputRange: [0, 1], outputRange: [(SVG_SIZE / 4) * 2, 0]}),
         },
       ],
     };
+    return ret;
   }
 
   render() {
-    const {selected, onClick} = this.props;
+    const {selected, onClick, url} = this.props;
     const {active} = this.state;
     return (
       <TouchableWithoutFeedback
@@ -98,20 +118,12 @@ class MaskedElement extends React.PureComponent {
               ) : (
                 <Circle fill="white" cx={SVG_SIZE / 2} cy={SVG_SIZE / 2} r={SVG_SIZE / 2} />
               )}
-              <AnimatedCircle
-                fill="black"
-                style={this.getBadgePosition()}
-                // transform={this.getBadgePosition()}
-                // transform="translate(10 10)"
-                cx={(SVG_SIZE / 4) * 3}
-                cy={(SVG_SIZE / 4) * 3}
-                r={SVG_SIZE / 4}
-              />
+              <AnimatedG style={this.getBadgePosition()}>
+                <Circle fill="black" cx={(SVG_SIZE / 4) * 3 + 2} cy={(SVG_SIZE / 4) * 3 + 2} r={SVG_SIZE / 4} />
+              </AnimatedG>
             </Mask>
           </Defs>
-          <G mask="url(#mask)">
-            <Rect x={0} y={0} width={SVG_SIZE} height={SVG_SIZE} fill="red" />
-          </G>
+          <Image x={0} y={0} width={SVG_SIZE} height={SVG_SIZE} href={{uri: url}} mask="url(#mask)" />
         </Svg>
       </TouchableWithoutFeedback>
     );
@@ -128,8 +140,8 @@ class App extends React.Component {
     return (
       <View style={styles.container}>
         <ScrollView style={styles.guilds} contentContainerStyle={styles.guildContent}>
-          {new Array(TOTAL_SVGS).fill(null).map((_, i) => (
-            <MaskedElement onClick={() => this.setState({selected: i})} selected={i === selected} key={i} />
+          {SERVERS.map((url, i) => (
+            <MaskedElement url={url} onClick={() => this.setState({selected: i})} selected={i === selected} key={url} />
           ))}
         </ScrollView>
       </View>
