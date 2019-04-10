@@ -82,7 +82,7 @@ class MaskedElement extends React.PureComponent {
   componentDidUpdate(prevProps) {
     const {selected} = this.props;
     if (selected && !prevProps.selected) {
-      setTimeout(() => this.animate(1), 300);
+      setTimeout(() => this.animate(1), 500);
     } else if (!selected && prevProps.selected) {
       setTimeout(() => this.animate(0), 2000);
     }
@@ -119,11 +119,14 @@ class MaskedElement extends React.PureComponent {
                 <Circle fill="white" cx={SVG_SIZE / 2} cy={SVG_SIZE / 2} r={SVG_SIZE / 2} />
               )}
               <AnimatedG style={this.getBadgePosition()}>
-                <Circle fill="black" cx={(SVG_SIZE / 4) * 3 + 2} cy={(SVG_SIZE / 4) * 3 + 2} r={SVG_SIZE / 4} />
+                <Circle fill="black" cx={(SVG_SIZE / 4) * 3 + 8} cy={(SVG_SIZE / 4) * 3 + 8} r={SVG_SIZE / 4} />
               </AnimatedG>
             </Mask>
           </Defs>
           <Image x={0} y={0} width={SVG_SIZE} height={SVG_SIZE} href={{uri: url}} mask="url(#mask)" />
+          <AnimatedG style={this.getBadgePosition()}>
+            <Circle fill="red" cx={(SVG_SIZE / 4) * 3 + 8} cy={(SVG_SIZE / 4) * 3 + 8} r={SVG_SIZE / 4 - 16} />
+          </AnimatedG>
         </Svg>
       </TouchableWithoutFeedback>
     );
